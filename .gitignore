@@ -1,2 +1,6 @@
 **/.ipynb_checkpoints/*
 **.log
+**/lightning_logs/
+**/__pycache__
+*.~lock*
+*.xlsx
