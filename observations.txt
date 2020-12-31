@@ -1,0 +1,8 @@
+train.Edition = train.Edition.apply(lambda x: 1 if 'Hardcover' in x else 0)
+
+with edition logPrice mean = 6.48
+without, logPrice mean = 5.92
+
+Spearman co-relation with Price (rank order)
+Ratings: -0.29806296907745683
+Reviews: 0.2212086365656977

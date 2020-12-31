@@ -18,7 +18,8 @@ class BookDataset(Dataset):
             for col in self.frame
         }
     
-def preprocess(train, isTrain=True):
+
+def preprocess(train, isTrain=True, transforms=True):
     # extract review value
     train.Reviews = train.Reviews.apply(lambda x: float(x[:3]) )
     
@@ -29,7 +30,10 @@ def preprocess(train, isTrain=True):
                 )
     )
 
-    train.Ratings = train.Ratings.apply(lambda x: np.log(x)).astype('float32')
+    if transforms:
+        train.Ratings = train.Ratings.apply(lambda x: np.log(x))
+        
+    train.Ratings = train.Ratings.astype('float32')
     train.Reviews = train.Reviews.astype('float32')
 
     # for Edition just check if Hardcover is there
@@ -55,7 +59,8 @@ def categoricalToIndices(train, val, test):
             wordIdx[t] = i+1
 
         for frame in (train, val, test):
-            frame[col] = frame[col].apply(lambda x: wordIdx[x] if x in wordIdx else 0)
+            if frame is not None:
+                frame[col] = frame[col].apply(lambda x: wordIdx[x] if x in wordIdx else 0)
     return
 
 def getBookDataset(trainFile, testFile):
