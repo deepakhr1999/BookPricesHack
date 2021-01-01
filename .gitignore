@@ -4,3 +4,4 @@
 **/__pycache__
 *.~lock*
 *.xlsx
+albert/synopsis.txt

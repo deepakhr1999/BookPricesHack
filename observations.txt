@@ -6,3 +6,7 @@ without, logPrice mean = 5.92
 Spearman co-relation with Price (rank order)
 Ratings: -0.29806296907745683
 Reviews: 0.2212086365656977
+
+XGBOOST
+Predict directly => 0.69967 test score
+Predict log values and submit exp(predictions) + 1 => 0.75043 test (best score yet :)
