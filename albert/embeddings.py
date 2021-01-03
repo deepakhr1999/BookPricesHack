@@ -1,8 +1,8 @@
 import torch
 from transformers import AutoTokenizer, AutoModel, AutoConfig
+import pytorch_lightning as pl
 
-
-class EmbeddingSummation(torch.nn.Module):
+class EmbeddingSummation(pl.LightningModule):
     def __init__(self, modelName="albert-base-v2", fromDownload=True):
         super().__init__()
         self.modelName = modelName
@@ -19,7 +19,7 @@ class EmbeddingSummation(torch.nn.Module):
                 self.embeddings.load_state_dict(state_dict)
             except FileNotFoundError:
                 raise ValueError("""Could not find {self.filename}. Pass fromDownload=True to EmbeddingSummation's __init__ to download the weights into you machine. You can use save_embeddings and then you fromDownload=False""")
-        self.cpu()
+
         
     def save_embeddings(self, filename=None):
         filename = self.filename if filename is None else filename
@@ -27,16 +27,6 @@ class EmbeddingSummation(torch.nn.Module):
         state_dict['className'] = type(self.embeddings)
         torch.save(state_dict, filename)
         print(f"Saved embeddings at {filename}")
-
-    def cuda(self):
-        super().cuda()
-        self.device = torch.device('cuda')
-        return self
-
-    def cpu(self):
-        super().cpu()
-        self.device = torch.device('cpu')
-        return self
 
     def setInputsToDevice(self, inputs):
         device = self.device

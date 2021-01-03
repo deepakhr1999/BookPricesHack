@@ -11,9 +11,7 @@ from torch.utils.data import Dataset
 class BookDataset(Dataset):
     def __init__(self, frame:pd.DataFrame):
         super().__init__()
-        frame = dict(frame.reset_index())
-        del(frame['index'])
-        self.data = {key:list(value) for key, value in frame.items()}
+        self.data = dict(frame.reset_index())
         
     def __len__(self):
         return len(self.data['Title'])
@@ -53,7 +51,7 @@ def mapAuthors(authors):
 """Transforms for normalizing columns"""
 ratingsTransform = lambda x: (math.log(1+x)/10) ** .5
 reviewsTransform = lambda x: (x/5)**4
-
+priceTransform  = lambda x: math.log(1 + x)
 
 def preprocess(filename:str):
     """
@@ -62,10 +60,10 @@ def preprocess(filename:str):
     train = pd.read_excel(filename)
     
     # extract review value
-    train.Reviews = train.Reviews.apply(lambda x: x[:3]).astype('float32').apply(reviewsTransform)
+    train.Reviews = train.Reviews.apply(lambda x: x[:3]).astype('float32').apply(reviewsTransform).astype('float32')
 
     # first word is number of people who left ratings
-    train.Ratings = train.Ratings.apply(lambda x: x.split()[0].replace(',','')).astype('float32').apply(ratingsTransform)
+    train.Ratings = train.Ratings.apply(lambda x: x.split()[0].replace(',','')).astype('float32').apply(ratingsTransform).astype('float32')
     
     # for Edition just check if Hardcover is there
     # a binary feature can be treated as a float instead of embedding
@@ -86,6 +84,8 @@ def preprocess(filename:str):
     # replace the Nones in author_i columns by '0'
     train.replace({None: '0'}, inplace=True)
 
+    if 'Price' in train:
+        train.Price = train.Price.apply(priceTransform).astype('float32')
     # return the cleaned dataframe
     return train
 
@@ -124,7 +124,7 @@ def categoricalToIndices(train, test, val=None):
             if frame is not None:
                 for f in featuresToCat:
                     frame[f] = frame[f].apply(lambda x: featureMap.get(x, 0))
-
+    
     return featureSizes
 
 
