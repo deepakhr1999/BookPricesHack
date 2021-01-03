@@ -8,6 +8,7 @@ class EmbeddingSummation(pl.LightningModule):
         self.modelName = modelName
         self.filename = f'embeddings_{modelName}.pt' 
         self.tokenizer = AutoTokenizer.from_pretrained(modelName)
+        self.dropout  = torch.nn.Dropout(.25)
         if fromDownload:
             self.embeddings = AutoModel.from_pretrained(modelName).embeddings #11683584 params
         else:
@@ -47,4 +48,4 @@ class EmbeddingSummation(pl.LightningModule):
         mask = torch.unsqueeze(inputs['attention_mask'], dim=1) * 1. # b, 1, t
         out = torch.matmul(mask, out) # b 1 u
         out = torch.squeeze(out, dim=1) # b u
-        return out
+        return self.dropout(out)

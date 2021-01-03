@@ -7,3 +7,4 @@
 albert/synopsis.txt
 albert/synopsis_lens.png
 albert/embeddings_*.pt
+albert/checkpoints/*
