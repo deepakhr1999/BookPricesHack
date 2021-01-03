@@ -4,14 +4,18 @@ import json
 import itertools
 import numpy as np
 import pandas as pd
+import torch
 from sklearn.model_selection import train_test_split
-from torch.utils.data import Dataset
-
+from torch.utils.data import Dataset, DataLoader
+from transformers import AutoTokenizer
 
 class BookDataset(Dataset):
-    def __init__(self, frame:pd.DataFrame):
+    def __init__(self, frame:pd.DataFrame, tokenizer='albert-base-v2'):
         super().__init__()
         self.data = dict(frame.reset_index())
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer)
+        self.tokenizer_args = dict(return_tensors='pt', return_token_type_ids=False,
+                                    padding=True, max_length=512, truncation=True)
         
     def __len__(self):
         return len(self.data['Title'])
@@ -21,7 +25,42 @@ class BookDataset(Dataset):
             col : self.data[col][idx]
             for col in self.data
         }
+    
+    def loader(self, batchSize=16, shuffle=True):
+        return DataLoader(self, batch_size=batchSize, collate_fn=self.collate, shuffle=shuffle)
+    
+    def collate(self, batch):
+        collated = {
+            # categorical data
+            'Author' : torch.stack([ 
+                torch.LongTensor([data[f'author_{i}'] for data in batch])
+                for i in range(5)
+            ]).T,
+            'Genre'  : torch.LongTensor([data['Genre'] for data in batch]),
+            'BookCategory' : torch.LongTensor([data['BookCategory'] for data in batch]),
 
+            # numeric
+            'Numeric' : torch.Tensor([
+                [data[col] for data in batch]
+                for col in 'Ratings Reviews Edition'.split()
+            ]).T,
+
+        }
+
+        # text data
+        title = self.tokenizer([data['Title'] for data in batch], **self.tokenizer_args)
+        collated['TitleInput'] = title['input_ids']
+        collated['TitleMask']  = title['attention_mask']
+
+        synopsis = self.tokenizer([data['Synopsis'] for data in batch], **self.tokenizer_args)
+        collated['SynopsisInput'] = synopsis['input_ids']
+        collated['SynopsisMask']  = synopsis['attention_mask']
+
+        if 'Price' in batch[0]:
+            collated['Price'] = torch.Tensor([data['Price'] for data in batch])
+
+        return collated
+        
 class NameSpace:
     def __init__(self, **kwargs):
         self.__dict__.update(**kwargs)
@@ -126,7 +165,6 @@ def categoricalToIndices(train, test, val=None):
                     frame[f] = frame[f].apply(lambda x: featureMap.get(x, 0))
     
     return featureSizes
-
 
 if __name__ == '__main__':
     print("Preprocessing...", end=' ')

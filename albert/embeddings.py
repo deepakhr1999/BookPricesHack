@@ -7,7 +7,7 @@ class EmbeddingSummation(pl.LightningModule):
         super().__init__()
         self.modelName = modelName
         self.filename = f'embeddings_{modelName}.pt' 
-        self.tokenizer = AutoTokenizer.from_pretrained(modelName)
+#         self.tokenizer = AutoTokenizer.from_pretrained(modelName)
         self.dropout  = torch.nn.Dropout(.25)
         if fromDownload:
             self.embeddings = AutoModel.from_pretrained(modelName).embeddings #11683584 params
@@ -29,23 +29,19 @@ class EmbeddingSummation(pl.LightningModule):
         torch.save(state_dict, filename)
         print(f"Saved embeddings at {filename}")
 
-    def setInputsToDevice(self, inputs):
-        device = self.device
-        inputs = {key: inputs[key].to(device) for key in inputs}
-        return inputs      
+#     def setInputsToDevice(self, inputs):
+#         device = self.device
+#         inputs = {key: inputs[key].to(device) for key in inputs}
+#         return inputs      
 
-    def forward(self, sentences:list)->torch.Tensor:
-        # convert sentences to a dict of input vectors
-        inputs = self.tokenizer(list(sentences), return_tensors='pt', return_token_type_ids=False,
-                                    padding=True, max_length=512, truncation=True)
-
-        inputs = self.setInputsToDevice(inputs)
+    def forward(self, inputs, mask)->torch.Tensor:
+        """Inputs and mask have same shape. They are outputs of a tokenizer."""
 
         # forward pass on embeddings, out is b t u
-        out = self.embeddings(input_ids=inputs['input_ids'])
+        out = self.embeddings(inputs)
         
         # multiply attention masks to get the sum
-        mask = torch.unsqueeze(inputs['attention_mask'], dim=1) * 1. # b, 1, t
+        mask = torch.unsqueeze(mask, dim=1) * 1. # b, 1, t
         out = torch.matmul(mask, out) # b 1 u
         out = torch.squeeze(out, dim=1) # b u
         return self.dropout(out)
